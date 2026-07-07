@@ -94,4 +94,22 @@ resource "aws_lambda_function" "this" {
   tags = var.tags
 
   depends_on = [aws_cloudwatch_log_group.this]
+
+  # CI updates the deployed code directly (aws lambda update-function-code),
+  # out-of-band from Terraform, on every app deploy — the same pattern the
+  # ecr/repository module's README describes for image-based consumers.
+  # Without this, every subsequent apply would diff the code-related
+  # attributes against whatever filename/image_uri still points at
+  # (typically an initial placeholder) and silently revert real deployed
+  # code back to it.
+  lifecycle {
+    ignore_changes = [
+      filename,
+      source_code_hash,
+      s3_bucket,
+      s3_key,
+      s3_object_version,
+      image_uri,
+    ]
+  }
 }
