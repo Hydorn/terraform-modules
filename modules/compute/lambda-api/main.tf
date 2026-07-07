@@ -56,7 +56,13 @@ resource "aws_iam_role_policy" "secrets" {
 }
 
 resource "aws_iam_role_policy_attachment" "extra" {
-  for_each   = toset(var.role_policy_arns)
+  # Keyed by index rather than toset(var.role_policy_arns) directly: when an
+  # ARN comes from a resource created in this same apply (e.g. an
+  # aws_iam_policy created alongside this module), its value is unknown at
+  # plan time, and for_each requires statically-known keys. Indices are
+  # known as soon as the list's length is (a static-length list literal
+  # with unknown element values still has a known length).
+  for_each   = { for idx, arn in var.role_policy_arns : tostring(idx) => arn }
   role       = aws_iam_role.this.name
   policy_arn = each.value
 }
